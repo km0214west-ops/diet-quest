@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ダイエット冒険記 — たのしく続くダイエットアプリ</title>
+<style>
+  :root{
+    --bg:#0f1424; --panel:#1a2138; --panel2:#222b48; --line:#2e3a5e;
+    --txt:#eaf0ff; --sub:#9aa6c9; --accent:#5b8cff; --accent2:#7bd88f;
+    --warn:#ffb454; --bad:#ff6b81; --good:#7bd88f; --gold:#ffd166;
+    --radius:18px; --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1c2647 0%,var(--bg) 60%);
+    color:var(--txt); min-height:100vh; padding-bottom:90px;
+  }
+  .app{max-width:480px;margin:0 auto;padding:16px}
+  h1,h2,h3{margin:0}
+  .muted{color:var(--sub)}
+  .center{text-align:center}
+  button{font-family:inherit;cursor:pointer;border:none}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+  .row{display:flex;gap:10px;align-items:center}
+  .between{justify-content:space-between}
+  .btn{background:var(--accent);color:#fff;border-radius:14px;padding:12px 16px;font-weight:700;font-size:15px;transition:transform .08s,filter .15s}
+  .btn:active{transform:scale(.96)}
+  .btn.sec{background:#2c365a;color:var(--txt)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--sub)}
+  .btn.full{width:100%;text-align:center}
+  .btn.small{padding:8px 12px;font-size:13px;border-radius:11px}
+  input,select{font-family:inherit;font-size:16px;background:#10162a;border:1px solid var(--line);
+    color:var(--txt);border-radius:12px;padding:11px 12px;width:100%}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  label{font-size:13px;color:var(--sub);display:block;margin:0 0 6px}
+  .field{margin-bottom:12px}
+  .pill{display:inline-flex;align-items:center;gap:6px;background:#10162a;border:1px solid var(--line);
+    border-radius:999px;padding:5px 11px;font-size:12px;color:var(--sub)}
+  /* avatar */
+  .avatar-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+  .avatar{font-size:84px;line-height:1;filter:drop-shadow(0 8px 14px rgba(0,0,0,.4));transition:transform .3s}
+  .avatar.bounce{animation:bounce .6s}
+  @keyframes bounce{0%,100%{transform:translateY(0)}30%{transform:translateY(-16px) scale(1.05)}60%{transform:translateY(0) scale(.97)}}
+  .speech{background:#fff;color:#1a2138;border-radius:14px;padding:9px 13px;font-size:13px;font-weight:600;
+    position:relative;max-width:280px;text-align:center;box-shadow:var(--shadow)}
+  .speech:after{content:"";position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);
+    border:7px solid transparent;border-top-color:#fff;border-bottom:0}
+  /* exp bar */
+  .bar{height:12px;background:#10162a;border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width .6s}
+  .bar.gold > i{background:linear-gradient(90deg,#ffb454,var(--gold))}
+  .bar.green > i{background:linear-gradient(90deg,#41b883,var(--good))}
+  .stat{flex:1;background:#10162a;border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+  .stat b{font-size:20px;display:block}
+  .stat span{font-size:11px;color:var(--sub)}
+  /* badges */
+  .badges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .badge{aspect-ratio:1;border-radius:14px;background:#10162a;border:1px solid var(--line);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative}
+  .badge .ic{font-size:26px;filter:grayscale(1);opacity:.3}
+  .badge.on .ic{filter:none;opacity:1}
+  .badge small{font-size:9px;color:var(--sub);text-align:center;line-height:1.1;padding:0 2px}
+  .badge.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  /* tabs */
+  .tabbar{position:fixed;bottom:0;left:0;right:0;background:rgba(16,22,42,.95);backdrop-filter:blur(8px);
+    border-top:1px solid var(--line);display:flex;z-index:50}
+  .tabbar .inner{max-width:480px;margin:0 auto;display:flex;width:100%}
+  .tab{flex:1;background:none;color:var(--sub);padding:9px 0 11px;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}
+  .tab .ic{font-size:21px}
+  .tab.on{color:var(--accent)}
+  /* list */
+  .meal{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .meal:last-child{border-bottom:none}
+  .meal .x{color:var(--bad);font-size:18px;background:none;padding:4px 8px}
+  .seg{display:flex;background:#10162a;border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+  .seg button{flex:1;background:none;color:var(--sub);padding:8px 0;border-radius:9px;font-size:13px;font-weight:600}
+  .seg button.on{background:var(--accent);color:#fff}
+  canvas{width:100%;display:block}
+  .toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(20px);opacity:0;
+    background:#fff;color:#15203a;font-weight:700;padding:11px 18px;border-radius:14px;box-shadow:var(--shadow);
+    z-index:80;transition:.35s;font-size:14px;max-width:90%;text-align:center}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+  .hidden{display:none!important}
+  .big{font-size:34px;font-weight:800}
+  .tiny{font-size:11px}
+  .reward{display:flex;justify-content:space-between;align-items:center;padding:11px;border-radius:12px;background:#10162a;border:1px solid var(--line);margin-bottom:8px}
+  .reward.done{border-color:var(--good)}
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:70;overflow:hidden}
+  .confetti i{position:absolute;width:9px;height:14px;top:-20px;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(105vh) rotate(540deg)}}
+  /* onboarding */
+  .ob{min-height:100vh;display:flex;flex-direction:column;justify-content:center}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .pfcrow{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .pfcrow .lab{width:74px;font-size:12px;color:var(--sub);flex-shrink:0}
+  .pfcrow .val{width:74px;text-align:right;font-size:12px;flex-shrink:0}
+  .bar.p > i{background:linear-gradient(90deg,#5b8cff,#7aa8ff)}
+  .bar.f > i{background:linear-gradient(90deg,#ffb454,#ffd166)}
+  .bar.c > i{background:linear-gradient(90deg,#41b883,#7bd88f)}
+  .pfctag{font-size:10px;color:var(--sub)}
+  .quick{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .quick button{background:#10162a;border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:7px 12px;font-size:13px}
+  .lvltag{background:var(--gold);color:#3a2c00;font-weight:800;border-radius:8px;padding:2px 8px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="app" id="root"></div>
+
+<div class="tabbar hidden" id="tabbar"><div class="inner">
+  <button class="tab on" data-tab="home"><span class="ic">🏠</span>ホーム</button>
+  <button class="tab" data-tab="weight"><span class="ic">⚖️</span>体重</button>
+  <button class="tab" data-tab="food"><span class="ic">🍽️</span>食事</button>
+  <button class="tab" data-tab="reward"><span class="ic">🎁</span>ごほうび</button>
+  <button class="tab" data-tab="badge"><span class="ic">🏅</span>実績</button>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   ダイエット冒険記 — 単一ファイルの体重・カロリー管理＋ゲーミフィケーション
+   データは localStorage に保存（端末内のみ）
+============================================================ */
+const KEY = "diet_quest_v1";
+/* 日付はすべてローカル時間（端末のタイムゾーン）基準。0時〜24時で1日を区切る */
+const ymd = (d)=> `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const todayStr = () => ymd(new Date());
+const addDays = (s,n)=>{ const d=new Date(s+"T00:00"); d.setDate(d.getDate()+n); return ymd(d); };
+const fmtDate = (s)=>{const d=new Date(s+"T00:00");return `${d.getMonth()+1}/${d.getDate()}`};
+
+/* ---- 単位換算（内部・保存・表示はすべて kg。入力のみ lb/kg を選択可） ---- */
+const LB_PER_KG = 2.2046226218;
+const toKg   = (val, unit)=> unit==="lb" ? val/LB_PER_KG : val;   // 入力値→kgで保存
+const toUnit = (kg,  unit)=> unit==="lb" ? kg*LB_PER_KG : kg;     // kg→入力欄の表示用
+const round1 = (n)=> Math.round(n*10)/10;
+
+/* ---- 状態 ---- */
+const blank = {
+  setup:false, name:"", height:170, startW:70, goalW:63, calTarget:1800, inputUnit:"kg",
+  pTarget:130, fTarget:40, cTarget:200,   // 1日のPFC目標(g)：たんぱく質中心・脂質少なめ
+  weights:[],          // {date, w}
+  meals:[],            // {date, name, kcal, slot}
+  level:1, exp:0,      // 経験値
+  streak:0, bestStreak:0, lastLog:null,
+  badges:{}, rewards:[], rewardsDone:{},
+  pet:"egg",           // 育成段階キー
+  created:todayStr()
+};
+let S = load();
+function load(){ try{return Object.assign(structuredClone(blank), JSON.parse(localStorage.getItem(KEY))||{})}catch(e){return structuredClone(blank)} }
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+
+/* ---- レベル / 経験値 ---- */
+const expForLevel = (lv)=> 50 + (lv-1)*40;        // 次のレベルに必要なEXP
+function addExp(n, why){
+  S.exp += n;
+  let lvUp=false;
+  while(S.exp >= expForLevel(S.level)){ S.exp -= expForLevel(S.level); S.level++; lvUp=true; }
+  save();
+  if(lvUp){ celebrate(); toast(`🎉 レベルアップ！ Lv.${S.level} になりました`); bounceAvatar(); }
+  else if(why) toast(`+${n} EXP ${why}`);
+  updatePet();
+}
+
+/* ---- 育成キャラ（体重の進捗＋レベルで成長） ---- */
+const petStages = [
+  {key:"egg",   emoji:"🥚", name:"たまご"},
+  {key:"chick", emoji:"🐣", name:"ひよこ"},
+  {key:"bird",  emoji:"🐥", name:"ことり"},
+  {key:"fox",   emoji:"🦊", name:"きつね"},
+  {key:"uni",   emoji:"🦄", name:"ユニコーン"},
+  {key:"drag",  emoji:"🐲", name:"ドラゴン"}
+];
+function petIndex(){
+  // レベルと目標達成率の合算で段階を決定
+  const prog = goalProgress();             // 0..1
+  const score = (S.level-1) + prog*4;
+  return Math.max(0, Math.min(petStages.length-1, Math.floor(score/2)));
+}
+function updatePet(){ S.pet = petStages[petIndex()].key; save(); }
+
+/* ---- 進捗計算 ---- */
+function curW(){ return S.weights.length ? S.weights[S.weights.length-1].w : S.startW; }
+function goalProgress(){
+  const total = S.startW - S.goalW;
+  if(Math.abs(total) < 0.01) return 1;
+  const done = S.startW - curW();
+  return Math.max(0, Math.min(1, done/total));
+}
+function todayKcal(){ return S.meals.filter(m=>m.date===todayStr()).reduce((a,b)=>a+b.kcal,0); }
+
+/* ---- ストリーク（連続記録） ---- */
+function touchStreak(){
+  const t = todayStr();
+  if(S.lastLog === t) return;
+  const y = addDays(t,-1);
+  S.streak = (S.lastLog === y) ? S.streak+1 : 1;
+  S.lastLog = t;
+  S.bestStreak = Math.max(S.bestStreak, S.streak);
+  save();
+}
+
+/* ---- バッジ定義 ---- */
+const BADGES = [
+  {id:"first",   ic:"🌱", name:"はじめの一歩", test:()=> S.weights.length+S.meals.length>=1},
+  {id:"week",    ic:"🔥", name:"7日連続",     test:()=> S.bestStreak>=7},
+  {id:"month",   ic:"💎", name:"30日連続",    test:()=> S.bestStreak>=30},
+  {id:"lv5",     ic:"⭐", name:"レベル5",      test:()=> S.level>=5},
+  {id:"lv10",    ic:"🌟", name:"レベル10",     test:()=> S.level>=10},
+  {id:"w10",     ic:"📊", name:"体重10回記録", test:()=> S.weights.length>=10},
+  {id:"loss1",   ic:"🎈", name:"-1kg達成",    test:()=> S.startW-curW()>=1},
+  {id:"loss3",   ic:"🏃", name:"-3kg達成",    test:()=> S.startW-curW()>=3},
+  {id:"loss5",   ic:"🏆", name:"-5kg達成",    test:()=> S.startW-curW()>=5},
+  {id:"goal",    ic:"👑", name:"目標達成",     test:()=> goalProgress()>=1},
+  {id:"calok",   ic:"🥗", name:"カロリー目標内", test:()=> { const k=todayKcal(); return k>0 && k<=S.calTarget; }},
+  {id:"early",   ic:"🐓", name:"皆勤3日",      test:()=> S.streak>=3},
+];
+function checkBadges(){
+  let earned=[];
+  BADGES.forEach(b=>{ if(!S.badges[b.id] && b.test()){ S.badges[b.id]=todayStr(); earned.push(b); } });
+  if(earned.length){ save(); earned.forEach(b=> setTimeout(()=>{ toast(`🏅 バッジ獲得「${b.name}」`); celebrate(); }, 300)); addExp(15*earned.length); }
+}
+
+/* ---- 励ましメッセージ ---- */
+function petMessage(){
+  const k=todayKcal(), prog=goalProgress();
+  const logged = S.weights.some(w=>w.date===todayStr());
+  if(prog>=1) return "目標達成！キミは最高だよ✨";
+  if(!logged && !k) return "今日はまだ記録ゼロ。1つだけ記録してみよ！";
+  if(k>0 && k<=S.calTarget) return "今日のカロリー、いい感じ！その調子！";
+  if(k>S.calTarget) return "ちょっと食べすぎ？明日は軽めにいこう💪";
+  if(S.streak>=3) return `${S.streak}日連続スゴい！習慣になってきたね`;
+  const msgs=["今日も会えてうれしい！","コツコツが一番の近道だよ","昨日のキミより一歩前進！","無理しないで、でも続けよう🌟"];
+  return msgs[(S.weights.length+S.meals.length)%msgs.length];
+}
+
+/* ============================================================
+   描画
+============================================================ */
+const root = document.getElementById("root");
+let tab = "home";
+
+function render(){
+  if(!S.setup){ renderOnboarding(); document.getElementById("tabbar").classList.add("hidden"); return; }
+  document.getElementById("tabbar").classList.remove("hidden");
+  updatePet();
+  ({home:renderHome, weight:renderWeight, food:renderFood, reward:renderReward, badge:renderBadge}[tab])();
+  document.querySelectorAll(".tab").forEach(t=> t.classList.toggle("on", t.dataset.tab===tab));
+}
+
+/* ---------- オンボーディング ---------- */
+function renderOnboarding(){
+  root.innerHTML = `
+  <div class="ob">
+    <div class="center" style="margin-bottom:18px">
+      <div style="font-size:64px">🐲</div>
+      <h1>ダイエット冒険記</h1>
+      <p class="muted">記録するほどキャラが育つ。<br>たのしく続けるダイエット。</p>
+    </div>
+    <div class="card">
+      <div class="field"><label>ニックネーム</label><input id="o-name" placeholder="例：たろう" value="${S.name}"></div>
+      <div class="field">
+        <label>体重の入力単位（アプリ上の表示は常に kg）</label>
+        <div class="seg">
+          <button type="button" class="${S.inputUnit==='kg'?'on':''}" onclick="setUnit('kg')">kg</button>
+          <button type="button" class="${S.inputUnit==='lb'?'on':''}" onclick="setUnit('lb')">lb</button>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>身長(cm)</label><input id="o-h" type="number" inputmode="decimal" value="${S.height}"></div>
+        <div class="field"><label>今の体重(${S.inputUnit})</label><input id="o-s" type="number" inputmode="decimal" value="${round1(toUnit(S.startW,S.inputUnit))}"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>目標体重(${S.inputUnit})</label><input id="o-g" type="number" inputmode="decimal" value="${round1(toUnit(S.goalW,S.inputUnit))}"></div>
+        <div class="field"><label>1日の目標カロリー</label><input id="o-c" type="number" inputmode="numeric" value="${S.calTarget}"></div>
+      </div>
+      <div id="o-suggest" class="tiny muted center" style="margin:4px 0 12px"></div>
+      <button class="btn full" id="o-start">はじめる 🚀</button>
+    </div>
+    <p class="tiny muted center">データはこの端末の中だけに保存されます（外部送信なし）</p>
+  </div>`;
+  const upd=()=>{
+    const h=+v("o-h"), s=toKg(+v("o-s"),S.inputUnit);
+    if(h>0&&s>0){ const bmi=(s/((h/100)**2)); const rec=round1(22*(h/100)**2);
+      document.getElementById("o-suggest").innerHTML=`現在のBMI <b>${bmi.toFixed(1)}</b> ／ 標準体重の目安 <b>${rec}kg</b>（BMI22）`; }
+  };
+  ["o-h","o-s"].forEach(id=>document.getElementById(id).addEventListener("input",upd)); upd();
+  document.getElementById("o-start").onclick=()=>{
+    S.name=v("o-name")||"あなた"; S.height=+v("o-h")||170;
+    S.startW=round1(toKg(+v("o-s"),S.inputUnit))||70;
+    S.goalW=round1(toKg(+v("o-g"),S.inputUnit))||S.startW; S.calTarget=+v("o-c")||1800;
+    S.setup=true; S.created=todayStr();
+    // 初期体重を記録
+    S.weights=[{date:todayStr(), w:S.startW}];
+    applyPFCDefaults();
+    setupDefaultRewards();
+    save(); tab="home"; render(); toast("ようこそ！冒険のはじまりだ ✨"); bounceAvatar();
+  };
+}
+/* たんぱく質中心・脂質少なめのPFC目標を体重とカロリーから自動算出 */
+function applyPFCDefaults(){
+  const p = Math.round(2 * S.startW);                 // たんぱく質 約2g/kg体重（高たんぱく）
+  const f = Math.round(S.calTarget * 0.20 / 9);       // 脂質 総カロリーの約20%（少なめ）
+  const c = Math.max(50, Math.round((S.calTarget - p*4 - f*9) / 4)); // 残りを炭水化物
+  S.pTarget=p; S.fTarget=f; S.cTarget=c;
+}
+function setupDefaultRewards(){
+  const lose=(kg)=>+(S.startW-kg).toFixed(1);
+  S.rewards=[
+    {id:"r1", label:"-1kgでお気に入りカフェ☕", target:lose(1)},
+    {id:"r2", label:"-2kgで新しい服を1着👕", target:lose(2)},
+    {id:"r3", label:`目標達成(${S.goalW}kg)でご褒美旅行🏖️`, target:S.goalW},
+  ];
+}
+
+/* ---------- ホーム ---------- */
+function renderHome(){
+  const pet=petStages[petIndex()];
+  const need=expForLevel(S.level), pct=Math.round(S.exp/need*100);
+  const prog=Math.round(goalProgress()*100);
+  const cw=curW(), diff=(S.startW-cw).toFixed(1), toGoal=(cw-S.goalW).toFixed(1);
+  const k=todayKcal(), kpct=Math.min(100,Math.round(k/S.calTarget*100));
+  const kColor = k>S.calTarget ? "gold" : "green";
+  root.innerHTML=`
+  <div class="row between" style="margin:4px 2px 14px">
+    <div><span class="lvltag">Lv.${S.level}</span> <b style="margin-left:6px">${S.name}</b></div>
+    <div class="pill">🔥 ${S.streak}日連続</div>
+  </div>
+
+  <div class="card avatar-wrap">
+    <div class="speech" id="speech">${petMessage()}</div>
+    <div class="avatar" id="avatar" onclick="bounceAvatar()">${pet.emoji}</div>
+    <div class="muted tiny">${pet.name}・なかよし度で進化</div>
+    <div style="width:100%;margin-top:6px">
+      <div class="row between tiny muted"><span>EXP</span><span>${S.exp} / ${need}</span></div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-bottom:14px">
+    <div class="stat"><b>${cw}<span style="font-size:12px">kg</span></b><span>現在の体重</span></div>
+    <div class="stat"><b style="color:${diff>=0?'var(--good)':'var(--bad)'}">${diff>=0?'-':'+'}${Math.abs(diff)}</b><span>開始からの変化</span></div>
+    <div class="stat"><b>${toGoal>0?toGoal:'0'}</b><span>目標まで(kg)</span></div>
+  </div>
+
+  <div class="card">
+    <div class="row between" style="margin-bottom:8px"><b>🎯 目標達成度</b><span class="muted">${prog}%</span></div>
+    <div class="bar green"><i style="width:${prog}%"></i></div>
+    <div class="tiny muted center" style="margin-top:8px">${S.startW}kg → 目標 ${S.goalW}kg</div>
+  </div>
+
+  <div class="card">
+    <div class="row between" style="margin-bottom:8px"><b>🍽️ 今日のカロリー</b><span class="muted">${k} / ${S.calTarget} kcal</span></div>
+    <div class="bar ${kColor}"><i style="width:${kpct}%"></i></div>
+    <div class="tiny ${k>S.calTarget?'':'muted'} center" style="margin-top:8px;color:${k>S.calTarget?'var(--warn)':''}">
+      ${k>S.calTarget? `目標を ${k-S.calTarget}kcal オーバー` : `あと ${S.calTarget-k}kcal 余裕があります`}</div>
+  </div>
+
+  <div class="row">
+    <button class="btn full sec" onclick="go('weight')">⚖️ 体重を記録</button>
+    <button class="btn full" onclick="go('food')">🍽️ 食事を記録</button>
+  </div>`;
+}
+
+/* ---------- 体重 ---------- */
+function renderWeight(){
+  const cw=curW();
+  root.innerHTML=`
+  <h2 style="margin:6px 2px 12px">⚖️ 体重管理</h2>
+  <div class="card">
+    <div class="row between" style="margin-bottom:10px">
+      <label style="margin:0">今日の体重を入力</label>
+      <div class="seg" style="width:120px">
+        <button class="${S.inputUnit==='kg'?'on':''}" onclick="setUnit('kg')">kg</button>
+        <button class="${S.inputUnit==='lb'?'on':''}" onclick="setUnit('lb')">lb</button>
+      </div>
+    </div>
+    <div class="row">
+      <input id="w-in" type="number" step="0.1" inputmode="decimal" value="${round1(toUnit(cw,S.inputUnit))}">
+      <span class="pill" style="white-space:nowrap">${S.inputUnit}</span>
+      <button class="btn" id="w-save" style="white-space:nowrap">記録</button>
+    </div>
+    <div class="tiny muted" id="w-conv" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <div class="row between" style="margin-bottom:10px"><b>体重の推移</b><span class="muted tiny">直近 ${Math.min(30,S.weights.length)}件</span></div>
+    <canvas id="wchart" height="180"></canvas>
+    ${S.weights.length<2?'<p class="tiny muted center" style="margin-top:8px">2回以上記録するとグラフが描かれます</p>':''}
+  </div>
+  <div class="card">
+    <b>記録履歴</b>
+    <div id="whist" style="margin-top:8px">${
+      S.weights.slice().reverse().slice(0,20).map((r,i,arr)=>{
+        const prev = arr[i+1];
+        const d = prev ? (r.w-prev.w) : 0;
+        const tag = prev ? `<span class="tiny" style="color:${d<=0?'var(--good)':'var(--bad)'}">${d<=0?'▼':'▲'}${Math.abs(d).toFixed(1)}</span>`:'';
+        return `<div class="meal"><span>${fmtDate(r.date)} <b style="margin-left:8px">${r.w}kg</b> ${tag}</span></div>`;
+      }).join('') || '<p class="tiny muted">まだ記録がありません</p>'
+    }</div>
+  </div>`;
+  // lb入力時のkg換算プレビュー
+  const conv=()=>{
+    const el=document.getElementById("w-conv"); if(!el) return;
+    const raw=+v("w-in");
+    if(S.inputUnit==="lb" && raw>0) el.innerHTML=`<b>${round1(toKg(raw,"lb"))} kg</b> として保存します（表示はkgに統一）。+10EXP`;
+    else el.textContent="記録すると +10EXP。同じ日に再記録すると上書きされます。";
+  };
+  document.getElementById("w-in").addEventListener("input",conv); conv();
+  document.getElementById("w-save").onclick=()=>{
+    const raw=+v("w-in"); if(!raw){toast("体重を入力してください");return;}
+    const w=round1(toKg(raw,S.inputUnit));          // 入力単位に関わらずkgで保存
+    const t=todayStr(); const ex=S.weights.find(x=>x.date===t);
+    if(ex) ex.w=w; else { S.weights.push({date:t,w}); addExp(10,"体重記録"); }
+    touchStreak(); save(); checkBadges(); render();
+    toast(S.inputUnit==="lb" ? `${raw}lb → ${w}kg で記録 ⚖️` : "体重を記録しました ⚖️");
+  };
+  if(S.weights.length>=2) drawLine("wchart", S.weights.slice(-30).map(r=>r.w), S.weights.slice(-30).map(r=>fmtDate(r.date)), S.goalW);
+}
+
+/* ---------- 食事 / カロリー ---------- */
+let foodSlot="朝";
+let foodDate=todayStr();   // 食事タブで表示中の日付（0時〜24時で1日）
+/* [メニュー名, kcal, P(g), F(g), C(g)] */
+const FOODS=[
+  ["鶏むね100g",110,23,2,0],["ささみ2本",100,23,0.8,0],["プロテイン1杯",120,24,1.5,3],
+  ["卵1個",80,7,5,0.3],["ゆで卵2個",150,13,10,1],["納豆1P",100,8,5,6],
+  ["豆腐半丁",110,10,6,3],["ヨーグルト(無糖)",70,6,3,5],["サラダ",60,1,4,5],
+  ["ごはん茶碗1杯",240,4,0.5,53],["食パン1枚",160,5,2.5,28],["味噌汁",40,3,1,4],
+  ["バナナ1本",90,1,0,23],["ラーメン",500,20,15,65],["カレーライス",700,15,25,95],
+  ["唐揚げ3個",290,18,18,12],["ポテチ",340,4,22,33],["チョコ",230,3,13,25],["ビール350",140,1,0,11]
+];
+function renderFood(){
+  const t=foodDate, list=S.meals.filter(m=>m.date===t);
+  const isToday = t===todayStr();
+  const dayLabel = isToday ? "今日" : (t===addDays(todayStr(),-1) ? "昨日" : "");
+  const sum=(key)=>list.reduce((a,b)=>a+(b[key]||0),0);
+  const k=sum('kcal'), P=round1(sum('p')), F=round1(sum('f')), C=round1(sum('c'));
+  const barRow=(cls,lab,val,tgt,unit)=>`
+    <div class="pfcrow"><span class="lab">${lab}</span>
+      <div class="bar ${cls}" style="flex:1"><i style="width:${tgt?Math.min(100,val/tgt*100):0}%"></i></div>
+      <span class="val" style="color:${cls==='f'&&val>tgt?'var(--warn)':''}">${val}/${tgt}${unit}</span></div>`;
+  root.innerHTML=`
+  <h2 style="margin:6px 2px 12px">🍽️ カロリー・PFC管理</h2>
+  <div class="card" style="padding:10px 12px">
+    <div class="row between">
+      <button class="btn sec small" onclick="shiftFoodDate(-1)">◀ 前日</button>
+      <div class="center">
+        <b>${fmtDate(t)}${dayLabel?` <span class="muted" style="font-size:12px">(${dayLabel})</span>`:''}</b>
+        ${isToday?'':'<div><button class="btn ghost small" style="margin-top:4px" onclick="jumpToday()">今日へ戻る</button></div>'}
+      </div>
+      <button class="btn sec small" onclick="shiftFoodDate(1)" ${isToday?'disabled style="opacity:.35"':''}>翌日 ▶</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="center">
+      <div class="big" style="color:${k>S.calTarget?'var(--warn)':'var(--good)'}">${k}<span style="font-size:14px" class="muted"> / ${S.calTarget} kcal</span></div>
+    </div>
+    ${barRow('p','P たんぱく質',P,S.pTarget,'g')}
+    ${barRow('f','F 脂質',F,S.fTarget,'g')}
+    ${barRow('c','C 炭水化物',C,S.cTarget,'g')}
+    <div class="tiny muted center" style="margin-top:10px">
+      ${P>=S.pTarget?'✅ たんぱく質クリア！':'💪 たんぱく質をあと'+round1(S.pTarget-P)+'g'} ／ ${F<=S.fTarget?'✅ 脂質OK':'⚠️ 脂質オーバー'}</div>
+  </div>
+  <div class="card">
+    <div class="seg" style="margin-bottom:12px">
+      ${["朝","昼","夜","間食"].map(s=>`<button class="${s===foodSlot?'on':''}" onclick="setSlot('${s}')">${s}</button>`).join('')}
+    </div>
+    <div class="field"><label>メニュー名</label><input id="f-name" placeholder="例：からあげ定食"></div>
+    <div class="grid3">
+      <div class="field"><label>P たんぱく(g)</label><input id="f-p" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>F 脂質(g)</label><input id="f-f" type="number" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>C 炭水(g)</label><input id="f-c" type="number" inputmode="decimal" placeholder="0"></div>
+    </div>
+    <div class="row">
+      <div style="flex:1"><label>カロリー(kcal) <span class="pfctag">空欄ならPFCから自動計算</span></label><input id="f-kcal" type="number" inputmode="numeric" placeholder="例：650"></div>
+      <button class="btn" id="f-add" style="align-self:flex-end;white-space:nowrap">追加</button>
+    </div>
+    <div class="quick">${FOODS.map((f,i)=>`<button onclick="quickFood(${i})">${f[0]} <span class="muted">P${f[2]}・${f[1]}k</span></button>`).join('')}</div>
+  </div>
+  <div class="card">
+    <b>${dayLabel?dayLabel:fmtDate(t)}の記録</b>
+    <div style="margin-top:8px">${
+      list.length? list.map(m=>`<div class="meal">
+        <span><span class="pill" style="padding:2px 8px">${m.slot}</span> ${m.name}
+          <div class="pfctag" style="margin-top:2px">P${round1(m.p||0)}・F${round1(m.f||0)}・C${round1(m.c||0)}g</div></span>
+        <span><b>${m.kcal}</b><button class="x" onclick="delMeal('${m.id}')">✕</button></span></div>`).join('')
+      : '<p class="tiny muted">まだ記録がありません。下のボタンでサッと追加できます。</p>'
+    }</div>
+  </div>
+  <div class="card">
+    <div class="row between"><b>🎯 1日の目標</b><button class="btn ghost small" onclick="resetPFC()">自動再計算</button></div>
+    <p class="tiny muted" style="margin:6px 0 10px">たんぱく質中心・脂質少なめでデフォルト設定済み。自由に変更できます。</p>
+    <div class="grid2">
+      <div class="field"><label>カロリー(kcal)</label><input id="t-cal" type="number" value="${S.calTarget}"></div>
+      <div class="field"><label>P たんぱく質(g)</label><input id="t-p" type="number" value="${S.pTarget}"></div>
+      <div class="field"><label>F 脂質(g)</label><input id="t-f" type="number" value="${S.fTarget}"></div>
+      <div class="field"><label>C 炭水化物(g)</label><input id="t-c" type="number" value="${S.cTarget}"></div>
+    </div>
+    <button class="btn full sec" id="t-save">目標を保存</button>
+  </div>`;
+  document.getElementById("t-save").onclick=()=>{
+    S.calTarget=+v("t-cal")||S.calTarget; S.pTarget=Math.max(0,+v("t-p")||0);
+    S.fTarget=Math.max(0,+v("t-f")||0); S.cTarget=Math.max(0,+v("t-c")||0);
+    save(); render(); toast("目標を更新しました 🎯");
+  };
+}
+window.resetPFC=()=>{ applyPFCDefaults(); save(); render(); toast("PFC目標を自動再計算しました 🔄"); };
+window.setUnit=(u)=>{ S.inputUnit=u; save(); render(); };
+window.setSlot=(s)=>{foodSlot=s; render();};
+window.shiftFoodDate=(n)=>{ const nx=addDays(foodDate,n); if(nx>todayStr())return; foodDate=nx; render(); };
+window.jumpToday=()=>{ foodDate=todayStr(); render(); };
+window.quickFood=(i)=>{ const f=FOODS[i];
+  document.getElementById("f-name").value=f[0]; document.getElementById("f-kcal").value=f[1];
+  document.getElementById("f-p").value=f[2]; document.getElementById("f-f").value=f[3]; document.getElementById("f-c").value=f[4];
+  addMeal(); };
+function addMeal(){
+  const name=v("f-name");
+  const p=Math.max(0,+v("f-p")||0), f=Math.max(0,+v("f-f")||0), c=Math.max(0,+v("f-c")||0);
+  let kcal=+v("f-kcal");
+  if(!kcal) kcal=Math.round(p*4+f*9+c*4);   // 未入力ならPFCから自動計算
+  if(!name||!kcal){toast("メニュー名と、カロリーかPFCを入力");return;}
+  S.meals.push({id:String(Date.now()+Math.random()), date:foodDate, name, kcal, p, f, c, slot:foodSlot});
+  if(foodDate===todayStr()){ touchStreak(); addExp(8,"食事記録"); }   // EXP・連続記録は当日のみ
+  save(); checkBadges(); render(); toast(`${name} を ${foodDate===todayStr()?'今日':fmtDate(foodDate)} に追加 🍽️`);
+}
+window.addMeal=addMeal;
+document.addEventListener("click",e=>{ if(e.target.id==="f-add") addMeal(); });
+window.delMeal=(id)=>{ S.meals=S.meals.filter(m=>m.id!==id); save(); render(); };
+
+/* ---------- ごほうび ---------- */
+function renderReward(){
+  const cw=curW();
+  root.innerHTML=`
+  <h2 style="margin:6px 2px 6px">🎁 ごほうび</h2>
+  <p class="tiny muted" style="margin:0 2px 12px">目標体重に到達したら自分にごほうび。達成すると自動でお祝いします。</p>
+  <div class="card">
+    ${S.rewards.map(r=>{
+      const done = cw<=r.target;
+      if(done && !S.rewardsDone[r.id]){ S.rewardsDone[r.id]=todayStr(); save(); setTimeout(()=>{celebrate();toast("🎁 ごほうび解除！おめでとう！");},200); }
+      return `<div class="reward ${done?'done':''}">
+        <div><div style="font-weight:600">${r.label}</div><div class="tiny muted">${r.target}kg を達成で</div></div>
+        <div>${done?'<span style="color:var(--good);font-weight:700">達成✓</span>':`<span class="tiny muted">あと ${(cw-r.target).toFixed(1)}kg</span>`}</div>
+      </div>`;
+    }).join('')}
+  </div>
+  <div class="card">
+    <b>ごほうびを追加</b>
+    <div class="field" style="margin-top:8px"><label>ごほうびの内容</label><input id="r-label" placeholder="例：欲しかった靴を買う👟"></div>
+    <div class="row">
+      <div style="flex:1"><label>達成ライン(kg)</label><input id="r-target" type="number" step="0.1" inputmode="decimal" placeholder="例：${(cw-1).toFixed(1)}"></div>
+      <button class="btn" id="r-add" style="align-self:flex-end">追加</button>
+    </div>
+  </div>`;
+  document.getElementById("r-add").onclick=()=>{
+    const label=v("r-label"), target=+v("r-target");
+    if(!label||!target){toast("内容と達成ラインを入力");return;}
+    S.rewards.push({id:"r"+Date.now(), label, target}); save(); render(); toast("ごほうびを追加 🎁");
+  };
+}
+
+/* ---------- 実績 / バッジ ---------- */
+function renderBadge(){
+  const got=Object.keys(S.badges).length;
+  root.innerHTML=`
+  <h2 style="margin:6px 2px 12px">🏅 実績</h2>
+  <div class="card">
+    <div class="row between"><b>獲得バッジ</b><span class="muted">${got} / ${BADGES.length}</span></div>
+    <div class="badges" style="margin-top:12px">
+      ${BADGES.map(b=>`<div class="badge ${S.badges[b.id]?'on':''}">
+        <span class="ic">${b.ic}</span><small>${b.name}</small></div>`).join('')}
+    </div>
+  </div>
+  <div class="row" style="margin-bottom:14px">
+    <div class="stat"><b>${S.level}</b><span>レベル</span></div>
+    <div class="stat"><b>${S.bestStreak}</b><span>最高連続(日)</span></div>
+    <div class="stat"><b>${S.weights.length}</b><span>体重記録(回)</span></div>
+  </div>
+  <div class="card">
+    <b>育成のあゆみ</b>
+    <div class="row" style="margin-top:12px;justify-content:space-between">
+      ${petStages.map((p,i)=>`<div class="center" style="opacity:${i<=petIndex()?1:.25}">
+        <div style="font-size:30px">${p.emoji}</div><div class="tiny muted">${p.name}</div></div>`).join('')}
+    </div>
+  </div>
+  <div class="card center">
+    <button class="btn ghost small" onclick="resetAll()">データをリセット</button>
+  </div>`;
+}
+window.resetAll=()=>{ if(confirm("すべての記録を消去して最初からやり直しますか？")){ localStorage.removeItem(KEY); S=load(); tab="home"; render(); } };
+
+/* ============================================================
+   グラフ（軽量Canvas折れ線）
+============================================================ */
+function drawLine(id, data, labels, goal){
+  const c=document.getElementById(id); if(!c) return;
+  const dpr=window.devicePixelRatio||1, W=c.clientWidth, H=180;
+  c.width=W*dpr; c.height=H*dpr; const x=c.getContext("2d"); x.scale(dpr,dpr);
+  const padL=34,padR=12,padT=14,padB=22;
+  const vals=data.concat(goal!=null?[goal]:[]);
+  let mn=Math.min(...vals), mx=Math.max(...vals); if(mn===mx){mn-=1;mx+=1;}
+  const pad=(mx-mn)*0.15; mn-=pad; mx+=pad;
+  const px=(i)=> padL + (W-padL-padR)*(data.length<2?0.5:i/(data.length-1));
+  const py=(val)=> padT + (H-padT-padB)*(1-(val-mn)/(mx-mn));
+  // grid
+  x.strokeStyle="#2e3a5e"; x.fillStyle="#9aa6c9"; x.font="10px sans-serif"; x.lineWidth=1;
+  for(let g=0;g<=3;g++){ const yy=padT+(H-padT-padB)*g/3; x.beginPath();x.moveTo(padL,yy);x.lineTo(W-padR,yy);x.stroke();
+    x.fillText((mx-(mx-mn)*g/3).toFixed(1), 2, yy+3); }
+  // goal line
+  if(goal!=null){ x.strokeStyle="#7bd88f"; x.setLineDash([5,4]); x.beginPath();x.moveTo(padL,py(goal));x.lineTo(W-padR,py(goal));x.stroke(); x.setLineDash([]);
+    x.fillStyle="#7bd88f"; x.fillText("目標", W-padR-26, py(goal)-4); }
+  // area + line
+  const grad=x.createLinearGradient(0,padT,0,H-padB); grad.addColorStop(0,"rgba(91,140,255,.35)"); grad.addColorStop(1,"rgba(91,140,255,0)");
+  x.beginPath(); data.forEach((d,i)=> i?x.lineTo(px(i),py(d)):x.moveTo(px(i),py(d)));
+  x.lineTo(px(data.length-1),H-padB); x.lineTo(px(0),H-padB); x.closePath(); x.fillStyle=grad; x.fill();
+  x.beginPath(); data.forEach((d,i)=> i?x.lineTo(px(i),py(d)):x.moveTo(px(i),py(d)));
+  x.strokeStyle="#5b8cff"; x.lineWidth=2.5; x.lineJoin="round"; x.stroke();
+  data.forEach((d,i)=>{ x.beginPath(); x.arc(px(i),py(d),3,0,7); x.fillStyle="#fff"; x.fill(); });
+  // x labels (端と中央)
+  x.fillStyle="#9aa6c9";
+  [0, Math.floor(data.length/2), data.length-1].forEach(i=>{ if(labels[i]) x.fillText(labels[i], px(i)-10, H-6); });
+}
+
+/* ============================================================
+   演出・小物
+============================================================ */
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2200); }
+window.bounceAvatar=()=>{ const a=document.getElementById("avatar"); if(a){a.classList.remove("bounce");void a.offsetWidth;a.classList.add("bounce");}
+  const s=document.getElementById("speech"); if(s) s.textContent=petMessage(); };
+function celebrate(){
+  const wrap=document.createElement("div"); wrap.className="confetti";
+  const colors=["#ffd166","#5b8cff","#7bd88f","#ff6b81","#ffb454"];
+  for(let i=0;i<60;i++){ const p=document.createElement("i");
+    p.style.left=Math.random()*100+"%"; p.style.background=colors[i%colors.length];
+    p.style.animationDuration=(1.6+Math.random()*1.4)+"s"; p.style.animationDelay=(Math.random()*.3)+"s";
+    wrap.appendChild(p); }
+  document.body.appendChild(wrap); setTimeout(()=>wrap.remove(),3200);
+}
+function go(t){ if(t==="food") foodDate=todayStr(); tab=t; render(); }
+window.go=go;
+function v(id){ const el=document.getElementById(id); return el?el.value.trim():""; }
+
+/* ---- タブ操作 ---- */
+document.querySelectorAll(".tab").forEach(b=> b.onclick=()=>{ if(b.dataset.tab==="food") foodDate=todayStr(); tab=b.dataset.tab; render(); });
+
+/* ---- 起動 ---- */
+render();
+</script>
+</body>
+</html>
