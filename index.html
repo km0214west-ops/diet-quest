@@ -369,8 +369,20 @@ function renderHome(){
 }
 
 /* ---------- 体重 ---------- */
+let weightRange="1m";   // 1w / 1m / 3m / all
+const W_RANGES=[["1w","1週間",7],["1m","1か月",31],["3m","3か月",92],["all","全期間",99999]];
+window.setWRange=(r)=>{ weightRange=r; render(); };
+function rangeWeights(){
+  const days=(W_RANGES.find(r=>r[0]===weightRange)||W_RANGES[1])[2];
+  const from=addDays(todayStr(), -(days-1));
+  const arr = weightRange==="all" ? S.weights.slice() : S.weights.filter(r=>r.date>=from);
+  return arr;
+}
 function renderWeight(){
   const cw=curW();
+  const rw=rangeWeights();
+  const periodDiff = rw.length>=2 ? round1(rw[rw.length-1].w - rw[0].w) : null;
+  const rangeLabel=(W_RANGES.find(r=>r[0]===weightRange)||W_RANGES[1])[1];
   root.innerHTML=`
   <h2 style="margin:6px 2px 12px">⚖️ 体重管理</h2>
   <div class="card">
@@ -389,9 +401,15 @@ function renderWeight(){
     <div class="tiny muted" id="w-conv" style="margin-top:8px"></div>
   </div>
   <div class="card">
-    <div class="row between" style="margin-bottom:10px"><b>体重の推移</b><span class="muted tiny">直近 ${Math.min(30,S.weights.length)}件</span></div>
+    <div class="row between" style="margin-bottom:10px">
+      <b>体重の推移</b>
+      ${periodDiff!=null?`<span class="tiny" style="color:${periodDiff<=0?'var(--good)':'var(--bad)'}">${rangeLabel} ${periodDiff<=0?'':'+'}${periodDiff}kg</span>`:''}
+    </div>
+    <div class="seg" style="margin-bottom:12px">
+      ${W_RANGES.map(r=>`<button class="${r[0]===weightRange?'on':''}" onclick="setWRange('${r[0]}')">${r[1]}</button>`).join('')}
+    </div>
     <canvas id="wchart" height="180"></canvas>
-    ${S.weights.length<2?'<p class="tiny muted center" style="margin-top:8px">2回以上記録するとグラフが描かれます</p>':''}
+    ${rw.length<2?`<p class="tiny muted center" style="margin-top:8px">${S.weights.length<2?'2回以上記録するとグラフが描かれます':'この期間の記録が足りません。期間を広げてみてください'}</p>`:`<p class="tiny muted center" style="margin-top:8px">${rangeLabel}・${rw.length}件の記録</p>`}
   </div>
   <div class="card">
     <b>記録履歴</b>
@@ -420,7 +438,7 @@ function renderWeight(){
     touchStreak(); save(); checkBadges(); render();
     toast(S.inputUnit==="lb" ? `${raw}lb → ${w}kg で記録 ⚖️` : "体重を記録しました ⚖️");
   };
-  if(S.weights.length>=2) drawLine("wchart", S.weights.slice(-30).map(r=>r.w), S.weights.slice(-30).map(r=>fmtDate(r.date)), S.goalW);
+  if(rw.length>=2) drawLine("wchart", rw.map(r=>r.w), rw.map(r=>fmtDate(r.date)), S.goalW);
 }
 
 /* ---------- 食事 / カロリー ---------- */
@@ -620,7 +638,8 @@ function drawLine(id, data, labels, goal){
   x.lineTo(px(data.length-1),H-padB); x.lineTo(px(0),H-padB); x.closePath(); x.fillStyle=grad; x.fill();
   x.beginPath(); data.forEach((d,i)=> i?x.lineTo(px(i),py(d)):x.moveTo(px(i),py(d)));
   x.strokeStyle="#5b8cff"; x.lineWidth=2.5; x.lineJoin="round"; x.stroke();
-  data.forEach((d,i)=>{ x.beginPath(); x.arc(px(i),py(d),3,0,7); x.fillStyle="#fff"; x.fill(); });
+  if(data.length<=31) data.forEach((d,i)=>{ x.beginPath(); x.arc(px(i),py(d),3,0,7); x.fillStyle="#fff"; x.fill(); });
+  else { const li=data.length-1; [0,li].forEach(i=>{ x.beginPath(); x.arc(px(i),py(data[i]),3,0,7); x.fillStyle="#fff"; x.fill(); }); }
   // x labels (端と中央)
   x.fillStyle="#9aa6c9";
   [0, Math.floor(data.length/2), data.length-1].forEach(i=>{ if(labels[i]) x.fillText(labels[i], px(i)-10, H-6); });
