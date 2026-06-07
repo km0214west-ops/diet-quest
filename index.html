@@ -144,6 +144,7 @@ const round1 = (n)=> Math.round(n*10)/10;
 const blank = {
   setup:false, name:"", height:170, startW:70, goalW:63, calTarget:1800, inputUnit:"kg",
   pTarget:130, fTarget:40, cTarget:200,   // 1日のPFC目標(g)：たんぱく質中心・脂質少なめ
+  customFoods:[],      // マイ食品 {id,name,kcal,p,f,c}
   weights:[],          // {date, w}
   meals:[],            // {date, name, kcal, slot}
   level:1, exp:0,      // 経験値
@@ -499,8 +500,18 @@ function renderFood(){
       <div style="flex:1"><label>カロリー(kcal) <span class="pfctag">空欄ならPFCから自動計算</span></label><input id="f-kcal" type="number" inputmode="numeric" placeholder="例：650"></div>
       <button class="btn" id="f-add" style="align-self:flex-end;white-space:nowrap">追加</button>
     </div>
-    <div class="quick">${FOODS.map((f,i)=>`<button onclick="quickFood(${i})">${f[0]} <span class="muted">P${f[2]}・${f[1]}k</span></button>`).join('')}</div>
+    <button class="btn ghost small full" style="margin-top:8px" onclick="registerCustom()">⭐ いま入力した内容をマイ食品に登録</button>
+    <div class="quick">
+      ${S.customFoods.map(f=>`<button onclick="quickCustom('${f.id}')" style="border-color:var(--gold)">⭐${f.name} <span class="muted">P${f.p}・${f.kcal}k</span></button>`).join('')}
+      ${FOODS.map((f,i)=>`<button onclick="quickFood(${i})">${f[0]} <span class="muted">P${f[2]}・${f[1]}k</span></button>`).join('')}
+    </div>
   </div>
+  ${S.customFoods.length?`<div class="card">
+    <b>⭐ マイ食品</b>
+    <p class="tiny muted" style="margin:6px 0 8px">登録したメニューは上のクイックボタン（⭐）から1タップで記録できます。</p>
+    ${S.customFoods.map(f=>`<div class="meal"><span>${f.name}<div class="pfctag" style="margin-top:2px">${f.kcal}kcal・P${f.p}・F${f.f}・C${f.c}g</div></span>
+      <button class="x" onclick="delCustom('${f.id}')">✕</button></div>`).join('')}
+  </div>`:''}
   <div class="card">
     <b>${dayLabel?dayLabel:fmtDate(t)}の記録</b>
     <div style="margin-top:8px">${
@@ -537,6 +548,20 @@ window.quickFood=(i)=>{ const f=FOODS[i];
   document.getElementById("f-name").value=f[0]; document.getElementById("f-kcal").value=f[1];
   document.getElementById("f-p").value=f[2]; document.getElementById("f-f").value=f[3]; document.getElementById("f-c").value=f[4];
   addMeal(); };
+window.quickCustom=(id)=>{ const f=S.customFoods.find(x=>x.id===id); if(!f)return;
+  document.getElementById("f-name").value=f.name; document.getElementById("f-kcal").value=f.kcal;
+  document.getElementById("f-p").value=f.p; document.getElementById("f-f").value=f.f; document.getElementById("f-c").value=f.c;
+  addMeal(); };
+window.registerCustom=()=>{
+  const name=v("f-name");
+  const p=Math.max(0,+v("f-p")||0), f=Math.max(0,+v("f-f")||0), c=Math.max(0,+v("f-c")||0);
+  let kcal=+v("f-kcal"); if(!kcal) kcal=Math.round(p*4+f*9+c*4);
+  if(!name||!kcal){ toast("メニュー名と、カロリーかPFCを入力してから登録"); return; }
+  if(S.customFoods.some(x=>x.name===name)){ toast("同じ名前のマイ食品が既にあります"); return; }
+  S.customFoods.push({id:"c"+String(Date.now()), name, kcal, p, f, c});
+  save(); render(); toast(`⭐「${name}」をマイ食品に登録`);
+};
+window.delCustom=(id)=>{ S.customFoods=S.customFoods.filter(x=>x.id!==id); save(); render(); toast("マイ食品を削除しました"); };
 function addMeal(){
   const name=v("f-name");
   const p=Math.max(0,+v("f-p")||0), f=Math.max(0,+v("f-f")||0), c=Math.max(0,+v("f-c")||0);
