@@ -372,8 +372,10 @@ function renderHome(){
 
 /* ---------- 体重 ---------- */
 let weightRange="1m";   // 1w / 1m / 3m / all
+let weightMode="daily"; // daily / weekly
 const W_RANGES=[["1w","1週間",7],["1m","1か月",31],["3m","3か月",92],["all","全期間",99999]];
 window.setWRange=(r)=>{ weightRange=r; render(); };
+window.setWMode=(m)=>{ weightMode=m; render(); };
 function inRange(arr){
   const days=(W_RANGES.find(r=>r[0]===weightRange)||W_RANGES[1])[2];
   const from=addDays(todayStr(), -(days-1));
@@ -381,6 +383,14 @@ function inRange(arr){
 }
 function rangeWeights(){ return inRange(S.weights); }
 function curWaist(){ return S.waists.length ? S.waists[S.waists.length-1].cm : null; }
+/* 週(月曜始まり)ごとの平均を返す。arr=[{date,val}] → [{date:週の月曜, v:平均}] */
+function weekKey(dateStr){ const d=new Date(dateStr+"T00:00"); const off=(d.getDay()+6)%7; d.setDate(d.getDate()-off); return ymd(d); }
+function weeklyAvg(arr, key){
+  const map=new Map();
+  arr.forEach(r=>{ const k=weekKey(r.date); (map.get(k)||map.set(k,[]).get(k)).push(r[key]); });
+  return [...map.entries()].sort((a,b)=> a[0]<b[0]?-1:1)
+    .map(([k,vals])=>({date:k, v: round1(vals.reduce((a,b)=>a+b,0)/vals.length)}));
+}
 function renderWeight(){
   const cw=curW();
   const rw=rangeWeights();
@@ -389,6 +399,9 @@ function renderWeight(){
   const cwa=curWaist();
   const rwa=inRange(S.waists);
   const waistDiff = rwa.length>=2 ? round1(rwa[rwa.length-1].cm - rwa[0].cm) : null;
+  const wChart  = weightMode==="weekly" ? weeklyAvg(rw,'w')  : rw.map(r=>({date:r.date, v:r.w}));
+  const waChart = weightMode==="weekly" ? weeklyAvg(rwa,'cm') : rwa.map(r=>({date:r.date, v:r.cm}));
+  const sfx = weightMode==="weekly" ? "週" : "";
   root.innerHTML=`
   <h2 style="margin:6px 2px 12px">⚖️ 体重管理</h2>
   <div class="card">
@@ -411,11 +424,15 @@ function renderWeight(){
       <b>体重の推移</b>
       ${periodDiff!=null?`<span class="tiny" style="color:${periodDiff<=0?'var(--good)':'var(--bad)'}">${rangeLabel} ${periodDiff<=0?'':'+'}${periodDiff}kg</span>`:''}
     </div>
-    <div class="seg" style="margin-bottom:12px">
+    <div class="seg" style="margin-bottom:8px">
       ${W_RANGES.map(r=>`<button class="${r[0]===weightRange?'on':''}" onclick="setWRange('${r[0]}')">${r[1]}</button>`).join('')}
     </div>
+    <div class="seg" style="margin-bottom:12px">
+      <button class="${weightMode==='daily'?'on':''}" onclick="setWMode('daily')">日別</button>
+      <button class="${weightMode==='weekly'?'on':''}" onclick="setWMode('weekly')">週平均</button>
+    </div>
     <canvas id="wchart" height="180"></canvas>
-    ${rw.length<2?`<p class="tiny muted center" style="margin-top:8px">${S.weights.length<2?'2回以上記録するとグラフが描かれます':'この期間の記録が足りません。期間を広げてみてください'}</p>`:`<p class="tiny muted center" style="margin-top:8px">${rangeLabel}・${rw.length}件の記録</p>`}
+    ${wChart.length<2?`<p class="tiny muted center" style="margin-top:8px">${S.weights.length<2?'2回以上記録するとグラフが描かれます':'この期間の記録が足りません。期間を広げてみてください'}</p>`:`<p class="tiny muted center" style="margin-top:8px">${rangeLabel}・${weightMode==='weekly'?wChart.length+'週分の平均':wChart.length+'件の記録'}</p>`}
   </div>
 
   <div class="card">
@@ -429,7 +446,7 @@ function renderWeight(){
       <button class="btn" id="wa-save" style="white-space:nowrap">記録</button>
     </div>
     ${S.waists.length?`<canvas id="wachart" height="160" style="margin-top:12px"></canvas>
-      ${rwa.length<2?`<p class="tiny muted center" style="margin-top:8px">この期間の記録が足りません（上の期間ボタンと共通）</p>`:`<p class="tiny muted center" style="margin-top:8px">${rangeLabel}・${rwa.length}件の記録</p>`}`
+      ${waChart.length<2?`<p class="tiny muted center" style="margin-top:8px">この期間の記録が足りません（上の期間・表示ボタンと共通）</p>`:`<p class="tiny muted center" style="margin-top:8px">${rangeLabel}・${weightMode==='weekly'?waChart.length+'週分の平均':waChart.length+'件の記録'}</p>`}`
       :'<p class="tiny muted" style="margin-top:8px">ウエストを記録すると推移グラフが表示されます。+10EXP</p>'}
   </div>
   <div class="card">
@@ -459,7 +476,7 @@ function renderWeight(){
     touchStreak(); save(); checkBadges(); render();
     toast(S.inputUnit==="lb" ? `${raw}lb → ${w}kg で記録 ⚖️` : "体重を記録しました ⚖️");
   };
-  if(rw.length>=2) drawLine("wchart", rw.map(r=>r.w), rw.map(r=>fmtDate(r.date)), S.goalW);
+  if(wChart.length>=2) drawLine("wchart", wChart.map(x=>x.v), wChart.map(x=>fmtDate(x.date)+sfx), S.goalW);
   const waEl=document.getElementById("wa-save");
   if(waEl) waEl.onclick=()=>{
     const cm=+v("wa-in"); if(!cm){toast("ウエストを入力してください");return;}
@@ -467,7 +484,7 @@ function renderWeight(){
     if(ex) ex.cm=round1(cm); else { S.waists.push({date:t,cm:round1(cm)}); addExp(10,"ウエスト記録"); }
     touchStreak(); save(); checkBadges(); render(); toast("ウエストを記録しました 📏");
   };
-  if(rwa.length>=2) drawLine("wachart", rwa.map(r=>r.cm), rwa.map(r=>fmtDate(r.date)), null);
+  if(waChart.length>=2) drawLine("wachart", waChart.map(x=>x.v), waChart.map(x=>fmtDate(x.date)+sfx), null);
 }
 
 /* ---------- 食事 / カロリー ---------- */
