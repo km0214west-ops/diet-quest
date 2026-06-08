@@ -146,6 +146,7 @@ const blank = {
   pTarget:130, fTarget:40, cTarget:200,   // 1日のPFC目標(g)：たんぱく質中心・脂質少なめ
   customFoods:[],      // マイ食品 {id,name,kcal,p,f,c}
   weights:[],          // {date, w}
+  waists:[],           // {date, cm} ウエスト
   meals:[],            // {date, name, kcal, slot}
   level:1, exp:0,      // 経験値
   streak:0, bestStreak:0, lastLog:null,
@@ -373,17 +374,21 @@ function renderHome(){
 let weightRange="1m";   // 1w / 1m / 3m / all
 const W_RANGES=[["1w","1週間",7],["1m","1か月",31],["3m","3か月",92],["all","全期間",99999]];
 window.setWRange=(r)=>{ weightRange=r; render(); };
-function rangeWeights(){
+function inRange(arr){
   const days=(W_RANGES.find(r=>r[0]===weightRange)||W_RANGES[1])[2];
   const from=addDays(todayStr(), -(days-1));
-  const arr = weightRange==="all" ? S.weights.slice() : S.weights.filter(r=>r.date>=from);
-  return arr;
+  return weightRange==="all" ? arr.slice() : arr.filter(r=>r.date>=from);
 }
+function rangeWeights(){ return inRange(S.weights); }
+function curWaist(){ return S.waists.length ? S.waists[S.waists.length-1].cm : null; }
 function renderWeight(){
   const cw=curW();
   const rw=rangeWeights();
   const periodDiff = rw.length>=2 ? round1(rw[rw.length-1].w - rw[0].w) : null;
   const rangeLabel=(W_RANGES.find(r=>r[0]===weightRange)||W_RANGES[1])[1];
+  const cwa=curWaist();
+  const rwa=inRange(S.waists);
+  const waistDiff = rwa.length>=2 ? round1(rwa[rwa.length-1].cm - rwa[0].cm) : null;
   root.innerHTML=`
   <h2 style="margin:6px 2px 12px">⚖️ 体重管理</h2>
   <div class="card">
@@ -411,6 +416,21 @@ function renderWeight(){
     </div>
     <canvas id="wchart" height="180"></canvas>
     ${rw.length<2?`<p class="tiny muted center" style="margin-top:8px">${S.weights.length<2?'2回以上記録するとグラフが描かれます':'この期間の記録が足りません。期間を広げてみてください'}</p>`:`<p class="tiny muted center" style="margin-top:8px">${rangeLabel}・${rw.length}件の記録</p>`}
+  </div>
+
+  <div class="card">
+    <div class="row between" style="margin-bottom:10px">
+      <b>📏 ウエスト</b>
+      ${waistDiff!=null?`<span class="tiny" style="color:${waistDiff<=0?'var(--good)':'var(--bad)'}">${rangeLabel} ${waistDiff<=0?'':'+'}${waistDiff}cm</span>`:''}
+    </div>
+    <div class="row">
+      <input id="wa-in" type="number" step="0.1" inputmode="decimal" placeholder="例：78.5" value="${cwa!=null?cwa:''}">
+      <span class="pill" style="white-space:nowrap">cm</span>
+      <button class="btn" id="wa-save" style="white-space:nowrap">記録</button>
+    </div>
+    ${S.waists.length?`<canvas id="wachart" height="160" style="margin-top:12px"></canvas>
+      ${rwa.length<2?`<p class="tiny muted center" style="margin-top:8px">この期間の記録が足りません（上の期間ボタンと共通）</p>`:`<p class="tiny muted center" style="margin-top:8px">${rangeLabel}・${rwa.length}件の記録</p>`}`
+      :'<p class="tiny muted" style="margin-top:8px">ウエストを記録すると推移グラフが表示されます。+10EXP</p>'}
   </div>
   <div class="card">
     <b>記録履歴</b>
@@ -440,6 +460,14 @@ function renderWeight(){
     toast(S.inputUnit==="lb" ? `${raw}lb → ${w}kg で記録 ⚖️` : "体重を記録しました ⚖️");
   };
   if(rw.length>=2) drawLine("wchart", rw.map(r=>r.w), rw.map(r=>fmtDate(r.date)), S.goalW);
+  const waEl=document.getElementById("wa-save");
+  if(waEl) waEl.onclick=()=>{
+    const cm=+v("wa-in"); if(!cm){toast("ウエストを入力してください");return;}
+    const t=todayStr(); const ex=S.waists.find(x=>x.date===t);
+    if(ex) ex.cm=round1(cm); else { S.waists.push({date:t,cm:round1(cm)}); addExp(10,"ウエスト記録"); }
+    touchStreak(); save(); checkBadges(); render(); toast("ウエストを記録しました 📏");
+  };
+  if(rwa.length>=2) drawLine("wachart", rwa.map(r=>r.cm), rwa.map(r=>fmtDate(r.date)), null);
 }
 
 /* ---------- 食事 / カロリー ---------- */
