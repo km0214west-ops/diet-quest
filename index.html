@@ -33,9 +33,10 @@
   .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--sub)}
   .btn.full{width:100%;text-align:center}
   .btn.small{padding:8px 12px;font-size:13px;border-radius:11px}
-  input,select{font-family:inherit;font-size:16px;background:#10162a;border:1px solid var(--line);
+  input,select,textarea{font-family:inherit;font-size:16px;background:#10162a;border:1px solid var(--line);
     color:var(--txt);border-radius:12px;padding:11px 12px;width:100%}
-  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  textarea{resize:vertical;line-height:1.4}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
   label{font-size:13px;color:var(--sub);display:block;margin:0 0 6px}
   .field{margin-bottom:12px}
   .pill{display:inline-flex;align-items:center;gap:6px;background:#10162a;border:1px solid var(--line);
@@ -676,10 +677,42 @@ function renderBadge(){
         <div style="font-size:30px">${p.emoji}</div><div class="tiny muted">${p.name}</div></div>`).join('')}
     </div>
   </div>
+  <div class="card">
+    <b>💾 データのバックアップ／復元</b>
+    <p class="tiny muted" style="margin:6px 0 10px">iPhoneのSafariは、しばらく開かないと記録を自動削除することがあります。<b>定期的にバックアップ</b>を取り、機種変更や万一の消失時に復元できます。</p>
+    <button class="btn full sec" onclick="exportData()">⬇️ バックアップを書き出す</button>
+    <textarea id="io" placeholder="「書き出す」を押すとここにバックアップ文字列が出ます。コピーしてメモ・メール等に保存してください。復元するときは、保存した文字列をここに貼り付けます。" style="height:96px;margin-top:8px;font-size:12px"></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="btn full sec" onclick="copyData()">📋 コピー</button>
+      <button class="btn full" onclick="importData()">♻️ この内容で復元</button>
+    </div>
+  </div>
   <div class="card center">
     <button class="btn ghost small" onclick="resetAll()">データをリセット</button>
   </div>`;
 }
+window.exportData=()=>{
+  const txt=localStorage.getItem(KEY)||JSON.stringify(S);
+  const el=document.getElementById("io"); if(el) el.value=txt;
+  try{ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([txt],{type:"application/json"}));
+    a.download="diet-backup-"+todayStr()+".json"; document.body.appendChild(a); a.click(); a.remove(); }catch(e){}
+  toast("バックアップを書き出しました 💾");
+};
+window.copyData=()=>{
+  const el=document.getElementById("io"); if(!el||!el.value){ toast("先に『書き出す』を押してください"); return; }
+  el.focus(); el.select(); el.setSelectionRange(0, el.value.length);
+  const done=()=>toast("コピーしました 📋");
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(el.value).then(done).catch(()=>{ try{document.execCommand("copy");done();}catch(e){toast("枠内を長押し→すべてを選択→コピー");} }); }
+  else { try{document.execCommand("copy");done();}catch(e){toast("枠内を長押し→すべてを選択→コピー");} }
+};
+window.importData=()=>{
+  const el=document.getElementById("io"); const txt=(el&&el.value||"").trim();
+  if(!txt){ toast("復元する内容を貼り付けてください"); return; }
+  let obj; try{ obj=JSON.parse(txt); }catch(e){ toast("データ形式が正しくありません"); return; }
+  if(!obj||typeof obj!=="object"||!("weights" in obj)){ toast("バックアップ内容ではないようです"); return; }
+  if(!confirm("現在のデータを、貼り付けた内容で上書きします。よろしいですか？")) return;
+  localStorage.setItem(KEY, JSON.stringify(obj)); S=load(); tab="home"; render(); toast("データを復元しました ✅");
+};
 window.resetAll=()=>{ if(confirm("すべての記録を消去して最初からやり直しますか？")){ localStorage.removeItem(KEY); S=load(); tab="home"; render(); } };
 
 /* ============================================================
